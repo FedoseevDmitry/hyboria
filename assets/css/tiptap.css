@@ -1,0 +1,13 @@
+.ProseMirror {
+  outline: none;
+  white-space: pre-wrap;
+  min-height: 150px;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+
+.dark .ProseMirror {
+  color: white;
+}
