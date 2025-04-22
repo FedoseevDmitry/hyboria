@@ -31,29 +31,49 @@
       <EditorButton icon="Image" @click="addImage" tooltip="Вставить изображение" />
     </div>
 
-    <EditorContent
-      :editor="editor"
-      class="w-full max-h-[400px] overflow-y-auto border border-gray-300 dark:border-gray-600 rounded p-3 bg-white dark:bg-gray-800 focus:outline-none"
-    />
+    <div class="w-full max-h-[400px] overflow-y-auto border border-gray-300 dark:border-gray-600 rounded p-3 bg-white dark:bg-gray-800 focus:outline-none">
+      <EditorContent :editor="editor" />
+    </div>
+
   </div>
+  <imageUploadModal
+    v-if="showImageModal"
+    @close="showImageModal = false"
+    @uploaded="handleImageUploaded"
+  />
+  <linkModal
+    v-if="showLinkModal"
+    @close="showLinkModal = false"
+    @insert="handleLinkInsert"
+  />
+  <editImageModal
+    v-if="showImageEditor"
+    :attrs="selectedImageNode?.attrs"
+    @close="showImageEditor = false"
+    @save="updateImage"
+  ></editImageModal>
 </template>
 
 <script setup>
-import { onBeforeUnmount, watch } from 'vue'
+import { onBeforeUnmount, watch, ref, computed } from 'vue'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
-import Image from '@tiptap/extension-image'
 import TextAlign from '@tiptap/extension-text-align'
 import TextStyle from '@tiptap/extension-text-style'
 import Color from '@tiptap/extension-color'
 import Highlight from '@tiptap/extension-highlight'
-import { computed } from 'vue'
 import EditorButton from '~/components/editorButton.vue'
+import imageUploadModal from '~/components/modals/imageUploadModal.vue'
+import linkModal from '~/components/modals/linkModal.vue'
+import { customImage } from '~/components/extensions/customImage'
+import editImageModal from '~/components/modals/editImageModal.vue'
 
 const props = defineProps({ content: String })
 const emit = defineEmits(['update:content'])
+const showImageModal = ref(false)
+const showLinkModal = ref(false)
 
 const editor = new Editor({
   content: props.content || '',
@@ -61,7 +81,12 @@ const editor = new Editor({
     StarterKit,
     Underline,
     Link.configure({ openOnClick: false }),
-    Image,
+    customImage.configure({
+      onClick: (attrs) => {
+        selectedImageNode.value = { attrs }
+        showImageEditor.value = true
+      }
+    }),
     TextAlign.configure({
       types: ['heading', 'paragraph'],
       defaultAlignment: 'left'
@@ -91,12 +116,29 @@ const editor = new Editor({
   },
 })
 
+editor.storage.customImageClickHandler = (attrs, getPos) => {
+  selectedImageNode.value = { attrs, getPos }
+  showImageEditor.value = true
+}
+
+
+const selectedImageNode = ref(null)
+const showImageEditor = ref(false)
+
 const currentBlock = computed(() => {
   if (editor.isActive('heading', { level: 1 })) return 'h1'
   if (editor.isActive('heading', { level: 2 })) return 'h2'
   if (editor.isActive('heading', { level: 3 })) return 'h3'
   return 'paragraph'
 })
+
+editor.on('selectionUpdate', ({ editor }) => {
+  const node = editor.state.selection.node?.type?.name === 'customImage'
+    ? editor.state.selection.node
+    : null
+  selectedImageNode.value = node
+})
+
 
 const changeBlock = (value) => {
   editor.chain().focus()
@@ -115,6 +157,26 @@ watch(() => props.content, (newContent) => {
   }
 })
 
+const updateImage = (attrs) => {
+  if (!selectedImageNode.value) return
+  const { getPos } = selectedImageNode.value
+  if (typeof getPos === 'function') {
+    editor
+      .chain()
+      .focus()
+      .command(({ tr }) => {
+        const pos = getPos()
+        tr.setNodeMarkup(pos, undefined, {
+          ...editor.state.doc.nodeAt(pos)?.attrs,
+          ...attrs
+        })
+        return true
+      })
+      .run()
+  }
+  showImageEditor.value = false
+}
+
 onBeforeUnmount(() => editor.destroy())
 
 const toggle = (mark) => editor.chain().focus()[`toggle${capitalize(mark)}`]().run()
@@ -123,16 +185,22 @@ const toggleHeading = (level) => editor.chain().focus().toggleHeading({ level })
 const align = (dir) => editor.chain().focus().setTextAlign(dir).run()
 
 const addLink = () => {
-  const url = window.prompt('Введите URL')
-  if (url) {
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+  showLinkModal.value = true
+}
+
+const handleLinkInsert = ({ url, text }) => {
+  editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+  if (text) {
+    editor.commands.insertContent(`<a href="${url}">${text}</a>`)
   }
 }
+
 const addImage = () => {
-  const url = window.prompt('URL изображения')
-  if (url) {
-    editor.chain().focus().setImage({ src: url }).run()
-  }
+  showImageModal.value = true
+}
+
+const handleImageUploaded = (url) => {
+  editor.chain().focus().setImage({ src: url }).run()
 }
 </script>
 
@@ -239,5 +307,28 @@ const addImage = () => {
 .dark .ProseMirror code {
   background-color: #374151; /* gray-700 */
   color: #facc15; /* yellow-400 */
+}
+
+.editor-wrapper {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* сам редактор (ProseMirror) */
+.ProseMirror {
+  min-height: 300px;
+  width: 100%;
+}
+
+/* изображение с % шириной не должно исчезать */
+.ProseMirror img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* если ширина указана явно — не ограничивай */
+.ProseMirror img[style*="width"] {
+  max-width: none;
 }
 </style>

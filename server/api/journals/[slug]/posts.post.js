@@ -20,7 +20,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Дневник не найден' })
   }
 
-  // Только владелец может добавлять посты
   if (journal.userId !== session.user.id) {
     throw createError({ statusCode: 403, message: 'Нет доступа к дневнику' })
   }
@@ -36,8 +35,13 @@ export default defineEventHandler(async (event) => {
       journalId: journal.id,
       title: body.title,
       content: body.content,
-      image: body.image || null
     }
+  })
+
+  // 👇 Обновим updatedAt у дневника
+  await prisma.journal.update({
+    where: { id: journal.id },
+    data: { updated_at: new Date() }
   })
 
   return post

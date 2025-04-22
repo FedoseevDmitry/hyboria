@@ -11,8 +11,9 @@ export default defineEventHandler(async () => {
       description: true,
       image: true,
       created_at: true,
+      updated_at: true,
     },
-    orderBy: { created_at: 'desc' },
+    orderBy: { updated_at: 'desc' },
   })
 
   return journals

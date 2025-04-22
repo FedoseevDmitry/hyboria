@@ -91,7 +91,7 @@ model WikiArticle {
 }
 
 model Journal {
-  id          String   @id @default(cuid())
+  id          String   @id @default(uuid())
   characterName   String
   userId      String
   created_at   DateTime @default(now())
@@ -108,11 +108,10 @@ model Journal {
 }
 
 model JournalPost {
-  id         String   @id @default(cuid())
+  id         String   @id @default(uuid())
   journalId  String
   title      String
   content    String
-  image      String?
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 

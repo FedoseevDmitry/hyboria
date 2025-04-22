@@ -13,8 +13,9 @@
       <div
         v-for="j in journals"
         :key="j.id"
-        class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hover:shadow-xl transition-shadow"
+        class="flex flex-col justify-between bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hover:shadow-xl transition-shadow h-full"
       >
+
       <img
         v-if="j.image"
         :src="j.image"
@@ -22,6 +23,7 @@
         class="w-full h-48 object-cover rounded mb-3 cursor-pointer"
         @click="openImageModal(j.image)"
       />
+      <div>
         <NuxtLink :to="`/journals/${j.slug}`">
           <h2 class="hover:underline text-blue-600 dark:text-blue-400 font-semibold text-xl mb-2">
             {{ j.characterName }}
@@ -30,14 +32,19 @@
         <p class="text-gray-600 dark:text-gray-300 text-sm mb-4">
           {{ j.description || j.preview || 'Без описания...' }}
         </p>
-        <div class="flex justify-end">
-          <NuxtLink
-            :to="`/journals/${j.slug}`"
-            class="text-blue-600 dark:text-blue-400 text-sm font-medium"
-          >
-            Читать далее
-          </NuxtLink>
+      </div>
+      <div class="flex justify-between items-end mb-2">
+        <div class="text-xs text-gray-500 dark:text-gray-400">
+          <div>Создан: {{ formatDateTime(j.created_at) }}</div>
+          <div>Обновлён: {{ formatDateTime(j.updated_at) }}</div>
         </div>
+        <NuxtLink
+          :to="`/journals/${j.slug}`"
+          class="text-blue-600 dark:text-blue-400 text-sm font-medium"
+        >
+          Читать →
+        </NuxtLink>
+      </div>
       </div>
     </div>
   </div>
@@ -76,4 +83,13 @@ const closeImageModal = () => {
   showImageModal.value = false
   modalImageUrl.value = ''
 }
+
+const formatDateTime = (d) =>
+  new Date(d).toLocaleString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 </script>

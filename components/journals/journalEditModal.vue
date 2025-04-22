@@ -55,7 +55,7 @@
   </div>
 
   <!-- Кастомное окно подтверждения -->
-  <ConfirmDialog
+  <confirmDialog
     v-if="showConfirm"
     title="Удаление дневника"
     message="Вы уверены, что хотите удалить этот дневник вместе со всеми записями?"
@@ -68,7 +68,7 @@
 import { useToast } from 'vue-toastification'
 import { reactive, ref } from 'vue'
 import { navigateTo } from '#app'
-import ConfirmDialog from '~/components/ui/confirmDialog.vue'
+import confirmDialog from '~/components/ui/confirmDialog.vue'
 
 const props = defineProps({
   journal: Object
