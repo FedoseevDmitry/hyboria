@@ -33,8 +33,17 @@ export const customImage = Image.extend({
       dom.src = node.attrs.src
       if (node.attrs.alt) dom.alt = node.attrs.alt
       if (node.attrs.title) dom.title = node.attrs.title
-      if (node.attrs.width) dom.width = node.attrs.width
-      if (node.attrs.float) dom.style.float = node.attrs.float
+
+      // 🔥 Здесь поправка:
+      if (node.attrs.width) {
+        dom.style.width = node.attrs.width // ← вместо dom.width = ...
+      }
+
+      if (node.attrs.float) {
+        dom.style.float = node.attrs.float
+        dom.style.margin = '0 1rem 1rem 1rem'
+      }
+
       dom.style.cursor = 'pointer'
 
       dom.addEventListener('click', event => {

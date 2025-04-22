@@ -6,6 +6,41 @@
       <EditorButton icon="Underline" :active="editor.isActive('underline')" @click="() => toggle('underline')" tooltip="Подчёркнутый" />
       <EditorButton icon="Strikethrough" :active="editor.isActive('strike')" @click="() => toggle('strike')" tooltip="Зачёркнутый" />
 
+        <div class="relative" ref="colorPickerRef">
+          <EditorButton icon="Palette" @click="toggleColor" tooltip="Цвет текста" />
+        </div>
+
+        <teleport to="body">
+          <Transition name="fade">
+            <div
+              v-if="toggleColorPicker"
+              ref="colorPickerRef"
+              class="fixed z-[9999] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg p-3 flex flex-wrap gap-2 w-52"
+              :style="{ top: `${colorPickerCoords.top}px`, left: `${colorPickerCoords.left}px` }"
+            >
+              <!-- Пресеты -->
+            <button
+              v-for="color in colors"
+              :key="color"
+              :style="{ backgroundColor: color }"
+              class="w-6 h-6 rounded border border-gray-300 hover:scale-110 transition-transform"
+              @click="setColor(color)"
+              :title="color"
+            />
+
+            <!-- Кастомный цвет -->
+            <div class="w-full mt-2">
+              <input
+                type="color"
+                class="w-full h-8 cursor-pointer rounded border border-gray-300 dark:border-gray-600 bg-transparent"
+                v-model="customColor"
+                @change="setColor(customColor)"
+              />
+            </div>
+          </div>
+        </Transition>
+      </teleport>
+
       <select
         class="border text-sm px-2 py-1 rounded bg-white dark:bg-gray-800 dark:text-white"
         v-if="editor"
@@ -69,11 +104,13 @@ import imageUploadModal from '~/components/modals/imageUploadModal.vue'
 import linkModal from '~/components/modals/linkModal.vue'
 import { customImage } from '~/components/extensions/customImage'
 import editImageModal from '~/components/modals/editImageModal.vue'
+import { onClickOutside } from '@vueuse/core'
 
 const props = defineProps({ content: String })
 const emit = defineEmits(['update:content'])
 const showImageModal = ref(false)
 const showLinkModal = ref(false)
+const customColor = ref('#000000')
 
 const editor = new Editor({
   content: props.content || '',
@@ -115,6 +152,42 @@ const editor = new Editor({
     emit('update:content', editor.getHTML())
   },
 })
+
+const toggleColorPicker = ref(false)
+const colorPickerRef = ref(null)
+
+const colors = [
+  // Нейтральные
+  '#000000', '#1f2937', '#374151', '#4b5563', '#6b7280', '#d1d5db', '#ffffff',
+
+  // Акцентные
+  '#dc2626', '#f97316', '#facc15', '#22c55e', '#0ea5e9', '#3b82f6',
+  '#6366f1', '#a855f7', '#ec4899',
+
+  // Дополнительные
+  '#14b8a6', '#8b5cf6', '#f43f5e', '#e2e8f0'
+]
+
+const setColor = (color) => {
+  editor.chain().focus().setColor(color).run()
+  toggleColorPicker.value = false
+}
+
+onClickOutside(colorPickerRef, () => {
+  toggleColorPicker.value = false
+})
+
+const colorPickerCoords = ref({ top: 0, left: 0 })
+
+const toggleColor = () => {
+  if (!colorPickerRef.value) return
+  const rect = colorPickerRef.value.getBoundingClientRect()
+  colorPickerCoords.value = {
+    top: rect.bottom + window.scrollY + 8,
+    left: rect.left + window.scrollX
+  }
+  toggleColorPicker.value = !toggleColorPicker.value
+}
 
 editor.storage.customImageClickHandler = (attrs, getPos) => {
   selectedImageNode.value = { attrs, getPos }
@@ -226,7 +299,6 @@ const handleImageUploaded = (url) => {
   min-height: 100%;
 }
 
-/* доп. стили для визуальной поддержки, если prose не работает */
 .ProseMirror a {
   color: #3b82f6;
   text-decoration: underline;
@@ -314,21 +386,28 @@ const handleImageUploaded = (url) => {
   max-width: 100%;
 }
 
-/* сам редактор (ProseMirror) */
 .ProseMirror {
   min-height: 300px;
   width: 100%;
 }
 
-/* изображение с % шириной не должно исчезать */
 .ProseMirror img {
   display: block;
   max-width: 100%;
   height: auto;
 }
 
-/* если ширина указана явно — не ограничивай */
 .ProseMirror img[style*="width"] {
   max-width: none;
 }
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
 </style>
